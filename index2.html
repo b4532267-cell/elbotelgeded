@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تطبيق مراسلة فوري</title>
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --app-bg: #ffffff;
+            --header-bg: #005c4b;
+            --primary-color: #00a884;
+            --text-color: #111111;
+            --text-secondary: #666666;
+            --chat-bg: #efeae2;
+            --incoming-bg: #ffffff;
+            --outgoing-bg: #d9fdd3;
+            --input-bg: #f0f2f5;
+            --border-color: #ddd;
+        }
+
+        .dark-mode {
+            --bg-color: #111b21;
+            --app-bg: #222d34;
+            --header-bg: #202c33;
+            --primary-color: #00a884;
+            --text-color: #e9edef;
+            --text-secondary: #8696a0;
+            --chat-bg: #0b141a;
+            --incoming-bg: #202c33;
+            --outgoing-bg: #005c4b;
+            --input-bg: #2a3942;
+            --border-color: #222d34;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 480px;
+            height: 100%;
+            background: var(--app-bg);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        @media (min-width: 481px) {
+            .app-container {
+                height: 85vh;
+                border-radius: 12px;
+                overflow: hidden;
+            }
+        }
+
+        .screen {
+            display: none;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            background: var(--app-bg);
+            z-index: 10;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        #login-screen {
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #00a884, #005c4b);
+            color: white;
+            text-align: center;
+            overflow-y: auto;
+        }
+
+        .login-card {
+            background: var(--app-bg);
+            padding: 25px 20px;
+            border-radius: 16px;
+            width: 100%;
+            color: var(--text-color);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+        }
+
+        .login-card h2 {
+            margin-bottom: 15px;
+            color: var(--primary-color);
+        }
+
+        .image-picker-wrapper {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .picker-circle {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: var(--input-bg);
+            border: 2px dashed var(--primary-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .picker-circle img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .picker-circle span {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-align: center;
+            padding: 5px;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+            text-align: right;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 3px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            background: var(--input-bg);
+            color: var(--text-color);
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 12px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .app-header {
+            background: var(--header-bg);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .app-header h3 {
+            font-size: 18px;
+        }
+
+        .header-icons span {
+            cursor: pointer;
+            font-size: 18px;
+            margin-left: 10px;
+        }
+
+        .content-body {
+            flex: 1;
+            overflow-y: auto;
+            background: var(--chat-bg);
+        }
+
+        .chat-list-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            background: var(--app-bg);
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+        }
+
+        .avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--border-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            margin-left: 15px;
+            flex-shrink: 0;
+        }
+
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .chat-info {
+            flex: 1;
+        }
+
+        .chat-info h4 {
+            font-size: 16px;
+            color: var(--text-color);
+            margin-bottom: 3px;
+        }
+
+        .chat-info p {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .messages-container {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .message {
+            max-width: 75%;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 14px;
+            position: relative;
+            word-wrap: break-word;
+            color: var(--text-color);
+        }
+
+        .message.incoming {
+            background: var(--incoming-bg);
+            align-self: flex-start;
+        }
+
+        .message.outgoing {
+            background: var(--outgoing-bg);
+            align-self: flex-end;
+        }
+
+        .chat-input-bar {
+            padding: 10px 15px;
+            background: var(--app-bg);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .chat-input-bar input {
+            flex: 1;
+            padding: 10px 15px;
+            border: none;
+            background: var(--input-bg);
+            color: var(--text-color);
+            border-radius: 20px;
+            outline: none;
+        }
+
+        .chat-input-bar button {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .bottom-nav {
+            background: var(--app-bg);
+            display: flex;
+            border-top: 1px solid var(--border-color);
+            height: 60px;
+        }
+
+        .nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        .nav-item.active {
+            color: var(--primary-color);
+        }
+
+        .nav-item span.icon {
+            font-size: 20px;
+            margin-bottom: 2px;
+        }
+
+        .profile-header-banner {
+            background: linear-gradient(to right, #ffd700, #ffaa00);
+            padding: 30px;
+            text-align: center;
+        }
+
+        .profile-avatar-container {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            border: 3px solid white;
+            margin: 0 auto 10px;
+            overflow: hidden;
+            background: #fff;
+        }
+
+        .profile-avatar-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .settings-list {
+            background: var(--app-bg);
+            margin-top: 10px;
+        }
+
+        .settings-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 15px;
+            color: var(--text-color);
+        }
+        
+        .floating-action-menu {
+            position: absolute;
+            bottom: 75px;
+            left: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .fab-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+
+        <!-- 1. شاشة تسجيل الدخول -->
+        <div id="login-screen" class="screen active">
+            <div class="login-card">
+                <h2>تسجيل الدخول</h2>
+                <div class="image-picker-wrapper" onclick="document.getElementById('file-input').click()">
+                    <div class="picker-circle" id="preview-circle">
+                        <span id="picker-text">اختر صورة</span>
+                    </div>
+                    <input type="file" id="file-input" accept="image/*" style="display: none;" onchange="previewImage(event)">
+                </div>
+
+                <form id="login-form">
+                    <div class="form-group">
+                        <label>الاسم الكامل</label>
+                        <input type="text" id="reg-name" required placeholder="اسمك...">
+                    </div>
+                    <div class="form-group">
+                        <label>السن (العمر)</label>
+                        <input type="number" id="reg-age" required placeholder="عمرك...">
+                    </div>
+                    <div class="form-group">
+                        <label>يوزر فريد (Username)</label>
+                        <input type="text" id="reg-username" required placeholder="مثال: @user123">
+                    </div>
+                    <div class="form-group" id="admin-pass-group" style="display: none;">
+                        <label style="color: #ffaa00; font-weight: bold;">كلمة مرور الأدمن (@belal)</label>
+                        <input type="password" id="reg-admin-pass" placeholder="أدخل الباسورد السرّي...">
+                    </div>
+                    <button type="submit" class="btn-primary">دخول التطبيق</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 2. الشاشة الرئيسية (قائمة الشاتات) -->
+        <div id="home-screen" class="screen">
+            <div class="app-header">
+                <h3>تطبيق الدردشة</h3>
+                <div class="header-icons">
+                    <span id="admin-panel-icon" onclick="switchScreen('admin-screen')" style="display:none;" title="لوحة الأدمن">🛡️</span>
+                    <span onclick="switchScreen('profile-screen')">⚙️</span>
+                </div>
+            </div>
+            <div class="content-body" id="chat-list-container"></div>
+            
+            <div class="floating-action-menu">
+                <button class="fab-btn" onclick="openAddContactModal()">➕ إضافة جهة اتصال</button>
+                <button class="fab-btn" onclick="openCreateGroupModal()">👥 إنشاء جروب</button>
+                <button class="fab-btn" onclick="openCreateChannelModal()">📢 إنشاء قناة</button>
+            </div>
+
+            <div class="bottom-nav">
+                <div class="nav-item active" onclick="switchScreen('home-screen')">
+                    <span class="icon">💬</span>
+                    <span>الدردشات</span>
+                </div>
+                <div class="nav-item" onclick="switchScreen('profile-screen')">
+                    <span class="icon">👤</span>
+                    <span>الملف الشخصي</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. شاشة المحادثة الفردية / الجروب -->
+        <div id="chat-screen" class="screen">
+            <div class="app-header">
+                <div style="display: flex; align-items: center; gap: 10px; cursor: pointer;" onclick="openContactProfile()">
+                    <span style="font-size: 20px;">⬅️</span>
+                    <div class="avatar" style="width: 35px; height: 35px; margin: 0;" id="active-chat-avatar"></div>
+                    <div>
+                        <h3 id="active-chat-name" style="font-size: 15px;">اسم المستخدم</h3>
+                        <small style="font-size: 10px; color: #ddd;" id="chat-sub-title">اضغط لعرض البروفيل</small>
+                    </div>
+                </div>
+            </div>
+            <div class="messages-container" id="messages-box"></div>
+            <div class="chat-input-bar">
+                <input type="text" id="message-input" placeholder="اكتب رسالة...">
+                <button onclick="sendMessage()">➤</button>
+            </div>
+        </div>
+
+        <!-- 4. شاشة بروفيل الشخص الذي أراسله -->
+        <div id="contact-profile-screen" class="screen">
+            <div class="app-header">
+                <h3>ملف الشخص</h3>
+                <span onclick="switchScreen('chat-screen')" style="cursor: pointer;">✖</span>
+            </div>
+            <div class="content-body" style="background: var(--app-bg); text-align: center; padding: 30px;">
+                <div class="profile-avatar-container" style="width: 120px; height: 120px; margin: 0 auto 20px;">
+                    <img id="contact-p-img" src="" alt="">
+                </div>
+                <h2 id="contact-p-name" style="color: var(--text-color); margin-bottom: 5px;"></h2>
+                <p id="contact-p-username" style="color: var(--primary-color); font-weight: bold; margin-bottom: 10px;"></p>
+                <p id="contact-p-age" style="color: var(--text-secondary);"></p>
+            </div>
+        </div>
+
+        <!-- 5. شاشة لوحة تحكم الأدمن -->
+        <div id="admin-screen" class="screen">
+            <div class="app-header">
+                <h3>لوحة تحكم الأدمن (@belal)</h3>
+                <span onclick="switchScreen('home-screen')" style="cursor: pointer;">✖</span>
+            </div>
+            <div class="content-body" style="padding: 20px; background: var(--app-bg);">
+                <div class="form-group">
+                    <label>يوزر الشخص المراد حظره (مثال: @user123)</label>
+                    <input type="text" id="search-ban-input" placeholder="اكتب اليوزر هنا...">
+                </div>
+                <div class="form-group">
+                    <label>مدة التقييد (الحظر)</label>
+                    <select id="ban-duration-select">
+                        <option value="60">دقيقة واحدة (تجريبي)</option>
+                        <option value="3600">ساعة واحدة</option>
+                        <option value="86400">24 ساعة (يوم)</option>
+                        <option value="604800">أسبوع واحد</option>
+                        <option value="permanent">حظر دائم</option>
+                    </select>
+                </div>
+                <button class="btn-primary" onclick="banUser()" style="background: #d9534f;">تنفيذ الحظر</button>
+                <div id="ban-status" style="margin-top: 15px; font-weight: bold; text-align: center;"></div>
+            </div>
+        </div>
+
+        <!-- 6. شاشة البروفيل والإعدادات الخاصة بي -->
+        <div id="profile-screen" class="screen">
+            <div class="app-header">
+                <h3>ملفي الشخصي</h3>
+                <span onclick="switchScreen('home-screen')" style="cursor: pointer;">✖</span>
+            </div>
+            <div class="content-body" style="background: var(--chat-bg);">
+                <div class="profile-header-banner">
+                    <div class="profile-avatar-container" onclick="document.getElementById('file-input-profile').click()" title="تغيير الصورة">
+                        <img id="profile-display-img" src="" alt="">
+                    </div>
+                    <input type="file" id="file-input-profile" accept="image/*" style="display: none;" onchange="updateProfileImage(event)">
+                    
+                    <h2 id="profile-display-name" style="color: #333;"></h2>
+                    <p id="profile-display-username" style="color: #555; font-weight: bold; margin-top: 3px;"></p>
+                    <p id="profile-display-age" style="color: #555; font-size: 13px; margin-top: 3px;"></p>
+                </div>
+                <div class="settings-list">
+                    <div class="settings-item">
+                        <span>الوضع الليلي (Dark Mode)</span>
+                        <input type="checkbox" id="dark-mode-toggle" onchange="toggleDarkMode(this)">
+                    </div>
+                    <div class="settings-item" onclick="logout()" style="color: red; cursor: pointer;">
+                        <span>تسجيل الخروج</span>
+                        <span>🚪</span>
+                    </div>
+                </div>
+            </div>
+            <div class="bottom-nav">
+                <div class="nav-item" onclick="switchScreen('home-screen')">
+                    <span class="icon">💬</span>
+                    <span>الدردشات</span>
+                </div>
+                <div class="nav-item active" onclick="switchScreen('profile-screen')">
+                    <span class="icon">👤</span>
+                    <span>الملف الشخصي</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        let currentUser = {
+            name: "",
+            age: "",
+            username: "",
+            image: "https://via.placeholder.com/150"
+        };
+
+        let registeredUsers = JSON.parse(localStorage.getItem('whatsapp_all_users')) || [
+            { username: "@belal", name: "بلال (الأدمن)" },
+            { username: "@ahmed", name: "أحمد محمد" },
+            { username: "@sara", name: "سارة خالد" }
+        ];
+
+        let chats = JSON.parse(localStorage.getItem('whatsapp_chats')) || [
+            { id: 1, type: 'user', name: "أحمد محمد", username: "@ahmed", age: 25, lastMessage: "أهلاً بك، كيف حالك؟", avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100", messages: [{sender: 'incoming', text: 'أهلاً بك، كيف حالك؟'}] },
+            { id: 2, type: 'user', name: "سارة خالد", username: "@sara", age: 22, lastMessage: "هل استلمت الملف المطلوب؟", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100", messages: [{sender: 'incoming', text: 'هل استلمت الملف المطلوب؟'}] }
+        ];
+
+        let bannedUsersMap = JSON.parse(localStorage.getItem('whatsapp_banned_map')) || {};
+        let currentActiveChat = null;
+
+        document.getElementById('reg-username').addEventListener('input', function() {
+            const val = this.value.trim().toLowerCase();
+            const passGroup = document.getElementById('admin-pass-group');
+            if (val === '@belal') {
+                passGroup.style.display = 'block';
+                document.getElementById('reg-admin-pass').setAttribute('required', 'true');
+            } else {
+                passGroup.style.display = 'none';
+                document.getElementById('reg-admin-pass').removeAttribute('required');
+            }
+        });
+
+        window.onload = function() {
+            const savedUser = localStorage.getItem('whatsapp_user');
+            const savedDarkMode = localStorage.getItem('whatsapp_dark');
+
+            if (savedDarkMode === 'true') {
+                document.body.classList.add('dark-mode');
+                document.getElementById('dark-mode-toggle').checked = true;
+            }
+
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                checkAdminAccess();
+                setupProfileData();
+                renderChatList();
+                switchScreen('home-screen');
+            }
+        };
+
+        function checkAdminAccess() {
+            const panelIcon = document.getElementById('admin-panel-icon');
+            if (currentUser.username.toLowerCase() === '@belal') {
+                panelIcon.style.display = 'inline-block';
+            } else {
+                panelIcon.style.display = 'none';
+            }
+        }
+
+        function previewImage(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    currentUser.image = e.target.result;
+                    document.getElementById('preview-circle').innerHTML = `<img src="${e.target.result}">`;
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function updateProfileImage(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    currentUser.image = e.target.result;
+                    document.getElementById('profile-display-img').src = e.target.result;
+                    document.getElementById('preview-circle').innerHTML = `<img src="${e.target.result}">`;
+                    localStorage.setItem('whatsapp_user', JSON.stringify(currentUser));
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        document.getElementById('login-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const name = document.getElementById('reg-name').value;
+            const age = document.getElementById('reg-age').value;
+            let username = document.getElementById('reg-username').value.trim();
+            if(!username.startsWith('@')) username = '@' + username;
+
+            if (username.toLowerCase() === '@belal') {
+                const pass = document.getElementById('reg-admin-pass').value;
+                if (pass !== 'hghsghl.22') {
+                    alert('كلمة مرور الأدمن غير صحيحة!');
+                    return;
+                }
+            } else {
+                const exists = registeredUsers.some(u => u.username.toLowerCase() === username.toLowerCase());
+                if (exists) {
+                    alert('هذا اليوزر مستخدم بالفعل، اختر يوزراً آخر.');
+                    return;
+                }
+            }
+
+            if (isUserBanned(username)) {
+                alert('عذراً، هذا الحساب محظور من الإدارة!');
+                return;
+            }
+
+            currentUser = { name, age, username, image: currentUser.image || 'https://via.placeholder.com/150' };
+
+            if (!registeredUsers.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+                registeredUsers.push({ username, name });
+                localStorage.setItem('whatsapp_all_users', JSON.stringify(registeredUsers));
+            }
+
+            localStorage.setItem('whatsapp_user', JSON.stringify(currentUser));
+            checkAdminAccess();
+            setupProfileData();
+            renderChatList();
+            switchScreen('home-screen');
+        });
+
+        function isUserBanned(username) {
+            if (!bannedUsersMap[username]) return false;
+            const banInfo = bannedUsersMap[username];
+            if (banInfo.permanent) return true;
+            if (Date.now() < banInfo.unbanTime) return true;
+            
+            delete bannedUsersMap[username];
+            localStorage.setItem('whatsapp_banned_map', JSON.stringify(bannedUsersMap));
+            return false;
+        }
+
+        function setupProfileData() {
+            document.getElementById('profile-display-name').innerText = currentUser.name;
+            document.getElementById('profile-display-username').innerText = currentUser.username;
+            document.getElementById('profile-display-age').innerText = `العمر: ${currentUser.age} سنة`;
+            document.getElementById('profile-display-img').src = currentUser.image;
+        }
+
+        function switchScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        function renderChatList() {
+            const container = document.getElementById('chat-list-container');
+            container.innerHTML = '';
+            chats.forEach(chat => {
+                let badge = chat.type === 'group' ? ' [جروب]' : (chat.type === 'channel' ? ' [قناة]' : '');
+                container.innerHTML += `
+                    <div class="chat-list-item" onclick="openChat(${chat.id})">
+                        <div class="avatar"><img src="${chat.avatar}" alt=""></div>
+                        <div class="chat-info">
+                            <h4>${chat.name} ${badge}</h4>
+                            <p>${chat.lastMessage}</p>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function openChat(chatId) {
+            currentActiveChat = chats.find(c => c.id === chatId);
+            document.getElementById('active-chat-name').innerText = currentActiveChat.name;
+            document.getElementById('active-chat-avatar').innerHTML = `<img src="${currentActiveChat.avatar}">`;
+            
+            if(currentActiveChat.type === 'group') {
+                document.getElementById('chat-sub-title').innerText = 'مجموعة دردشة';
+            } else if(currentActiveChat.type === 'channel') {
+                document.getElementById('chat-sub-title').innerText = 'قناة بث';
+            } else {
+                document.getElementById('chat-sub-title').innerText = 'اضغط لعرض البروفيل';
+            }
+
+            renderMessages();
+            switchScreen('chat-screen');
+        }
+
+        function openContactProfile() {
+            if (!currentActiveChat || currentActiveChat.type !== 'user') return;
+            document.getElementById('contact-p-name').innerText = currentActiveChat.name;
+            document.getElementById('contact-p-username').innerText = currentActiveChat.username;
+            document.getElementById('contact-p-age').innerText = `العمر: ${currentActiveChat.age} سنة`;
+            document.getElementById('contact-p-img').src = currentActiveChat.avatar;
+            switchScreen('contact-profile-screen');
+        }
+
+        function renderMessages() {
+            const messagesBox = document.getElementById('messages-box');
+            messagesBox.innerHTML = '';
+            currentActiveChat.messages.forEach(msg => {
+                messagesBox.innerHTML += `<div class="message ${msg.sender}">${msg.text}</div>`;
+            });
+            messagesBox.scrollTop = messagesBox.scrollHeight;
+        }
+
+        function sendMessage() {
+            if (isUserBanned(currentUser.username)) {
+                alert('لا يمكنك إرسال رسائل، لقد تم تقييد حسابك بواسطة الأدمن!');
+                return;
+            }
+
+            const input = document.getElementById('message-input');
+            const text = input.value.trim();
+            if(text === "") return;
+
+            currentActiveChat.messages.push({ sender: 'outgoing', text: text });
+            currentActiveChat.lastMessage = text;
+
+            localStorage.setItem('whatsapp_chats', JSON.stringify(chats));
+
+            renderMessages();
+            renderChatList();
+            input.value = "";
+        }
+
+        function openAddContactModal() {
+            let username = prompt("أدخل يوزر جهة الاتصال (مثال: @user):");
+            if (!username) return;
+            if(!username.startsWith('@')) username = '@' + username;
+
+            if (username.toLowerCase() === currentUser.username.toLowerCase()) {
+                alert("لا يمكنك إضافة نفسك كجهة اتصال!");
+                return;
+            }
+
+            const foundUser = registeredUsers.find(u => u.username.toLowerCase() === username.toLowerCase());
+            if (!foundUser) {
+                alert("هذا اليوزر غير موجود في التطبيق!");
+                return;
+            }
+
+            const existing = chats.find(c => c.username && c.username.toLowerCase() === username.toLowerCase());
+            if (existing) {
+                openChat(existing.id);
+                return;
+            }
+
+            const newContact = {
+                id: Date.now(),
+                type: 'user',
+                name: foundUser.name,
+                username: foundUser.username,
+                age: 20,
+                lastMessage: "تم بدء المحادثة",
+                avatar: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=100",
+                messages: [{sender: 'incoming', text: 'أهلاً بك!'}]
+            };
+
+            chats.push(newContact);
+            localStorage.setItem('whatsapp_chats', JSON.stringify(chats));
+            renderChatList();
+            openChat(newContact.id);
+        }
+
+        function openCreateGroupModal() {
+            const groupName = prompt("أدخل اسم الجروب:");
+            if (!groupName) return;
+
+            const newGroup = {
+                id: Date.now(),
+                type: 'group',
+                name: groupName,
+                lastMessage: "تم إنشاء المجموعة",
+                avatar: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=100",
+                messages: [{sender: 'incoming', text: `أهلاً بك في مجموعة ${groupName}`}]
+            };
+
+            chats.push(newGroup);
+            localStorage.setItem('whatsapp_chats', JSON.stringify(chats));
+            renderChatList();
+        }
+
+        function openCreateChannelModal() {
+            const channelName = prompt("أدخل اسم القناة:");
+            if (!channelName) return;
+
+            const newChannel = {
+                id: Date.now(),
+                type: 'channel',
+                name: channelName,
+                lastMessage: "تم إنشـاء القناة",
+                avatar: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100",
+                messages: [{sender: 'incoming', text: `أهلاً بك في قناة ${channelName}`}]
+            };
+
+            chats.push(newChannel);
+            localStorage.setItem('whatsapp_chats', JSON.stringify(chats));
+            renderChatList();
+        }
+
+        function banUser() {
+            let usernameToBan = document.getElementById('search-ban-input').value.trim();
+            const durationVal = document.getElementById('ban-duration-select').value;
+            const statusDiv = document.getElementById('ban-status');
+
+            if (!usernameToBan) {
+                statusDiv.style.color = "red";
+                statusDiv.innerText = "الرجاء إدخال اليوزر!";
+                return;
+            }
+            if(!usernameToBan.startsWith('@')) usernameToBan = '@' + usernameToBan;
+
+            const userExists = registeredUsers.some(u => u.username.toLowerCase() === usernameToBan.toLowerCase());
+            if (!userExists) {
+                statusDiv.style.color = "red";
+                statusDiv.innerText = "هذا اليوزر غير موجود في التطبيق!";
+                return;
+            }
+
+            let unbanTime = 0;
+            let isPermanent = false;
+
+            if (durationVal === 'permanent') {
+                isPermanent = true;
+            } else {
+                unbanTime = Date.now() + (parseInt(durationVal) * 1000);
+            }
+
+            bannedUsersMap[usernameToBan] = {
+                permanent: isPermanent,
+                unbanTime: unbanTime
+            };
+
+            localStorage.setItem('whatsapp_banned_map', JSON.stringify(bannedUsersMap));
+
+            statusDiv.style.color = "green";
+            statusDiv.innerText = `تم تقييد وحظر المستخدم (${usernameToBan}) بنجاح!`;
+            document.getElementById('search-ban-input').value = "";
+        }
+
+        function toggleDarkMode(checkbox) {
+            if (checkbox.checked) {
+                document.body.classList.add('dark-mode');
+                localStorage.setItem('whatsapp_dark', 'true');
+            } else {
+                document.body.classList.remove('dark-mode');
+                localStorage.setItem('whatsapp_dark', 'false');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('whatsapp_user');
+            document.getElementById('login-form').reset();
+            document.getElementById('preview-circle').innerHTML = `<span id="picker-text">اختر صورة</span>`;
+            document.getElementById('admin-pass-group').style.display = 'none';
+            currentUser = { name: "", age: "", username: "", image: "https://via.placeholder.com/150" };
+            switchScreen('login-screen');
+        }
+    </script>
+</body>
+</html>
